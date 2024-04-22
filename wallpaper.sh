@@ -13,19 +13,37 @@ cd ~/bing-wallpapers/
 index_seed="$(jot -r 1 0 7)"
 #请求bing服务获得最新一张壁纸(下载UHD壁纸)
 rurl_esult="$(curl --location --request GET 'https://www.bing.com/HPImageArchive.aspx?idx='$index_seed'&n=5&format=js' --header 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36'  | grep -o '"url":"[^"]*"'  | sed -e 's/"url":"/https:\/\/cn.bing.com/' | sed -e 's/"//' | sed -e 's/1920x1080/UHD/g')"
+#echo $rurl_esult
 #下载壁纸
-rm -f wallpapler*.jpg
+#rm -f wallpapler*.jpg
 #随机文件名，否则无法更换壁纸
-file_seed="$(date +%s)"
-curl $rurl_esult -o wallpapler_$file_seed.jpg > /dev/null
+#file_seed="$(date +%s)"
+file_seed="$(date +%Y%m%d)"
+filename="$file_seed-$index_seed.jpg"
+if [ -f $filename ]; then
+    filesize=$(stat -f%z $filename) #下载完小于1M就不换了
+    if [ $filesize -lt 1048576 ]; then
+        rm -f $filename
+        exit 0
+    fi
+    localpath="/Users/$USER/bing-wallpapers/$filename"
+    osascript -e "tell application \"System Events\" to set picture of (reference to every desktop) to \"$localpath\""
+    exit 0
+fi
+curl $rurl_esult -o $filename --max-time 60 > /dev/null
+filesize=$(stat -f%z $filename) #下载完小于1M就不换了
+if [ $filesize -lt 1048576 ]; then
+    rm -f $filename
+    exit 0
+fi
 #设置壁纸路径
-localpath="/Users/$USER/bing-wallpapers/wallpapler_$file_seed.jpg"
+localpath="/Users/$USER/bing-wallpapers/$filename"
 #设置壁纸
 # osascript -e "tell application \"Finder\" to set desktop picture to POSIX file \"$localpath\""
 osascript -e "tell application \"System Events\" to set picture of (reference to every desktop) to \"$localpath\""
 
 #提示壁纸设置成功
-if [[ $1 = "-n" ]]
-then
-    osascript -e "display notification \"壁纸更换成功\" with title \"定时换壁纸\""
-fi
+# if [[ $1 = "-n" ]]
+# then
+#     osascript -e "display notification \"壁纸更换成功\" with title \"定时换壁纸\""
+# fi
